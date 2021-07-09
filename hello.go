@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type Article struct {
@@ -24,83 +23,84 @@ func main() {
 	Articles = []Article{
 		{Id: "1", Title: "Hello 1", Desc: "Article Description", Content: "Article Content"},
 		{Id: "2", Title: "Hello 2", Desc: "Article Description", Content: "Article Content"},
+		{Id: "3", Title: "Hello 3", Desc: "Article Description", Content: "Article Content"},
 	}
 	handleRequest()
 
 }
 
 func handleRequest() {
-	myrouter := mux.NewRouter().StrictSlash(true)
+	myrouter := gin.Default()
 
-	myrouter.HandleFunc("/", sayHello)
-	myrouter.HandleFunc("/about", about)
-	myrouter.HandleFunc("/articles", getAllArticles)
-	myrouter.HandleFunc("/article/{id}", getArticleById).Methods("GET")
-	myrouter.HandleFunc("/article", createArticle).Methods("POST")
-	myrouter.HandleFunc("/article/{id}", deleteArticle).Methods("DELETE")
-	myrouter.HandleFunc("/article/{id}", updateArticle).Methods("PATCH")
-	http.ListenAndServe(":9000", myrouter)
+	myrouter.GET("/", sayHello)
+	myrouter.GET("/about", about)
+
+	myrouter.GET("/articles", getAllArticles)
+	myrouter.GET("/article/:id", getArticleById)
+	myrouter.POST("/article", createArticle)
+	myrouter.DELETE("/article/:id", deleteArticle)
+	myrouter.PATCH("/article/:id", updateArticle)
+	myrouter.Run()
 }
 
-func sayHello(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello World"))
+func sayHello(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "pong",
+	})
 }
 
-func about(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Developer Jayesh Sinha"))
+func about(c *gin.Context) {
+	c.JSON(200, gin.H{
+		"message": "Developer- Jayesh Sinha",
+	})
 
 }
 
-func getAllArticles(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("All articles"))
-	json.NewEncoder(w).Encode(Articles)
+func getAllArticles(c *gin.Context) {
+	json.NewEncoder(c.Writer).Encode(Articles)
 }
 
-func getArticleById(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
+func getArticleById(c *gin.Context) {
+	key := c.Param("id")
 	for _, article := range Articles {
 		if article.Id == key {
-			json.NewEncoder(w).Encode(article)
+			json.NewEncoder(c.Writer).Encode(article)
 		}
 	}
 }
 
-func createArticle(w http.ResponseWriter, r *http.Request) {
-	body, _ := ioutil.ReadAll(r.Body)
-
+func createArticle(c *gin.Context) {
+	json.NewEncoder(c.Writer).Encode("Got it!!")
 	var article Article
-	json.Unmarshal(body, &article)
+	c.BindJSON(&article)
 	Articles = append(Articles, article)
-	w.Write([]byte("Article added"))
-	json.NewEncoder(w).Encode(article)
+
+	json.NewEncoder(c.Writer).Encode(article)
 
 }
 
-func deleteArticle(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	key := vars["id"]
+func deleteArticle(c *gin.Context) {
+	key := c.Param("id")
 	for index, article := range Articles {
 		if article.Id == key {
 			Articles = append(Articles[:index], Articles[index+1:]...)
-			w.Write([]byte("Article with id " + key + " deleted!!"))
+			c.Writer.Write([]byte("Article with id " + key + " deleted!!"))
 		}
 	}
-
 }
 
-func updateArticle(w http.ResponseWriter, r *http.Request) {
+func updateArticle(c *gin.Context) {
 
-	key := mux.Vars(r)["id"]
+	key := c.Param("id")
 
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := ioutil.ReadAll(c.Request.Body)
 
 	var article Article
 	json.Unmarshal(body, &article)
-	for _, a := range Articles {
+	for i, a := range Articles {
 		if a.Id == key {
-			a = article
-			w.Write([]byte("Article with id " + key + " updated!!"))
+			Articles[i] = article
+			c.Writer.Write([]byte("Article with id " + key + " updated!!"))
 		}
 	}
 }
