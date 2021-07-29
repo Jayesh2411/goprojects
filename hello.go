@@ -30,6 +30,8 @@ func main() {
 }
 
 func handleRequest() {
+	fmt.Println("this function handles the incoming request")
+	fmt.Println("this function handles the incoming request")
 	myrouter := gin.Default()
 
 	myrouter.GET("/", sayHello)
